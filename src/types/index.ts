@@ -44,3 +44,25 @@ export interface JupiterSwapResponse {
   lastValidBlockHeight: number;
   prioritizationFeeLamports: number;
 }
+
+
+
+export interface TokenBalance {
+  mint: string;
+  symbol: string;
+  name: string;
+  amount: number;
+  decimals: number;
+  uiAmount: number;
+  price?: number;
+  value?: number;
+}
+
+
+
+export interface Portfolio {
+  solBalance: number;
+  totalValue: number;
+  tokens: TokenBalance[];
+  lastUpdated: Date;
+}
