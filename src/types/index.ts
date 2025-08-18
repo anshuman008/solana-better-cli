@@ -58,6 +58,11 @@ export interface TokenBalance {
   value?: number;
 }
 
+export interface TransferParams {
+  toAddress: string;
+  amount: number;
+  memo?: string;
+}
 
 
 export interface Portfolio {
