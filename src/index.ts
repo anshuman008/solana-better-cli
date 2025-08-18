@@ -11,7 +11,7 @@ import { TransferService } from './features/transfer';
 import { WrappingSolService } from './features/wrappingSol';
 import { JupiterService } from './features/jupiter';
 import { PortfolioService } from './features/portfolio';
-import { config } from './config';
+import { getConfig, CliOptions } from './config';
 import { Logger } from './utils/logger';
 
 class SolanaWalletManager {
@@ -22,14 +22,16 @@ class SolanaWalletManager {
   private wrappingService?: WrappingSolService;
   private jupiterService?: JupiterService;
   private portfolioService?: PortfolioService;
+  private config: ReturnType<typeof getConfig>;
 
-  constructor() {
-    this.connection = new Connection(config.rpcUrl, config.commitment);
-    this.walletManager = new WalletManager(config.rpcUrl);
+  constructor(cliOptions: CliOptions = {}) {
+    this.config = getConfig(cliOptions);
+    this.connection = new Connection(this.config.rpcUrl, this.config.commitment);
+    this.walletManager = new WalletManager(this.config.rpcUrl);
 
-    if (config.privateKey) {
+    if (this.config.privateKey) {
       try {
-        const parsed = JSON.parse(config.privateKey);
+        const parsed = JSON.parse(this.config.privateKey);
         this.keypair = this.walletManager.loadWallet(parsed);
         this.initializeServices(this.keypair);
         Logger.success('Loaded wallet from PRIVATE_KEY in environment.');
@@ -352,12 +354,12 @@ class SolanaWalletManager {
 
       if (answers.fromToken.length < 32) {
         const fromToken = await this.jupiterService.findTokenBySymbol(answers.fromToken);
-        fromMint = fromToken?.address || config.tokens.WSOL; // Default to SOL
+        fromMint = fromToken?.address || this.config.tokens.WSOL; // Default to SOL
       }
 
       if (answers.toToken.length < 32) {
         const toToken = await this.jupiterService.findTokenBySymbol(answers.toToken);
-        toMint = toToken?.address || config.tokens.USDC; // Default to USDC
+        toMint = toToken?.address || this.config.tokens.USDC; // Default to USDC
       }
 
       Logger.info(`Swapping ${answers.amount} ${answers.fromToken} to ${answers.toToken}`);
@@ -422,14 +424,20 @@ class SolanaWalletManager {
 }
 
 const program = new Command();
-const walletManager = new SolanaWalletManager();
+let walletManager: SolanaWalletManager;
 
 program
-  .name('solana-wallet-manager')
-  .description('Comprehensive Solana wallet management tool')
-  .version('1.0.0');
+  .name('solana-better')
+  .description('Comprehensive Solana wallet management CLI tool')
+  .version('1.0.0')
+  .option('-r, --rpc-url <url>', 'Custom RPC URL (default: https://api.mainnet-beta.solana.com)')
+  .option('-n, --network <network>', 'Solana network (mainnet-beta, testnet, devnet)')
+  .option('-c, --commitment <level>', 'Commitment level (confirmed, finalized, processed)')
+  .option('--slippage <bps>', 'Slippage tolerance in basis points (default: 300)')
+  .option('--priority-fee <lamports>', 'Priority fee in lamports (default: 1000)');
 
-function createAndSaveWallet(outputFile?: string) {
+function createAndSaveWallet(outputFile?: string, cliOptions: CliOptions = {}) {
+  const config = getConfig(cliOptions);
   const wm = new WalletManager(config.rpcUrl);
   const keypair = wm.generateWallet();
   Logger.success('New wallet generated!');
@@ -469,7 +477,8 @@ program
   .description('Generate a new Solana wallet and display the public key')
   .option('-o, --output <file>', 'Save the wallet to a file')
   .action(async (options) => {
-    createAndSaveWallet(options.output);
+    const cliOptions = program.opts();
+    createAndSaveWallet(options.output, cliOptions);
   });
 
 program
@@ -479,6 +488,8 @@ program
   .option('-s, --save <file>', 'Save the initialized wallet to a file')
   .action(async (privateKey, options) => {
     try {
+      const cliOptions = program.opts();
+      const config = getConfig(cliOptions);
       const wm = new WalletManager(config.rpcUrl);
       const keypair = await wm.initializeWallet(privateKey);
       
@@ -500,7 +511,10 @@ program
   .command('start')
   .description('Start the interactive wallet manager')
   .action(async () => {
-    Logger.header('SOLANA WALLET MANAGER');
+    const cliOptions = program.opts();
+    walletManager = new SolanaWalletManager(cliOptions);
+    
+    Logger.header('SOLANA BETTER CLI');
     Logger.info('Welcome to the comprehensive Solana wallet management tool!');
     Logger.separator();
     

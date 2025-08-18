@@ -1,6 +1,6 @@
 {
   "name": "solana-better-cli",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A comprehensive Solana wallet management CLI tool with portfolio tracking, token swapping, and more",
   "main": "dist/index.js",
   "bin": {

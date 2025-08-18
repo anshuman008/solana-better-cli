@@ -94,6 +94,44 @@ PRIVATE_KEY=[your-private-key-array]
 COMMITMENT=confirmed
 ```
 
+### CLI Configuration Options
+
+You can also configure the tool directly from the command line without environment variables:
+
+```bash
+# Use a custom RPC endpoint
+solana-better --rpc-url https://api.devnet.solana.com start
+
+# Switch to testnet
+solana-better --network testnet start
+
+# Use a different commitment level
+solana-better --commitment finalized start
+
+# Set custom slippage and priority fee
+solana-better --slippage 500 --priority-fee 2000 start
+
+# Combine multiple options
+solana-better --rpc-url https://api.testnet.solana.com --network testnet --commitment processed start
+```
+
+### Available CLI Options
+
+- `-r, --rpc-url <url>` - Custom RPC URL (default: https://api.mainnet-beta.solana.com)
+- `-n, --network <network>` - Solana network (mainnet-beta, testnet, devnet)
+- `-c, --commitment <level>` - Commitment level (confirmed, finalized, processed)
+- `--slippage <bps>` - Slippage tolerance in basis points (default: 300)
+- `--priority-fee <lamports>` - Priority fee in lamports (default: 1000)
+
+### Network-Specific RPC URLs
+
+Here are some common RPC endpoints you can use:
+
+- **Mainnet**: `https://api.mainnet-beta.solana.com`
+- **Testnet**: `https://api.testnet.solana.com`
+- **Devnet**: `https://api.devnet.solana.com`
+- **Local**: `http://localhost:8899`
+
 ## Examples
 
 ### Generate a New Wallet
