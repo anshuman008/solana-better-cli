@@ -57,6 +57,7 @@ class SolanaWalletManager {
           'Generate new wallet',
           'Load from private key',
           'Load from file',
+          'Initialize from private key (JSON/base58)',
           'Exit'
         ]
       }
@@ -71,6 +72,9 @@ class SolanaWalletManager {
         break;
       case 'Load from file':
         await this.loadFromFile();
+        break;
+      case 'Initialize from private key (JSON/base58)':
+        await this.initializeFromPrivateKey();
         break;
       case 'Exit':
         process.exit(0);
@@ -156,6 +160,32 @@ class SolanaWalletManager {
       this.initializeServices(keypair);
     } catch (error) {
       Logger.error(`Failed to load wallet: ${error}`);
+      await this.setupWallet();
+    }
+  }
+
+  private async initializeFromPrivateKey(): Promise<void> {
+    const answer = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'privateKey',
+        message: 'Enter your private key (JSON array, base58 string, or file path):',
+        validate: (input: string) => {
+          if (input.trim()) {
+            return true;
+          }
+          return 'Please enter a private key';
+        }
+      }
+    ]);
+
+    try {
+      const keypair = await this.walletManager.initializeWallet(answer.privateKey);
+      Logger.success('Wallet initialized successfully!');
+      await this.walletManager.displayWalletInfo(keypair);
+      this.initializeServices(keypair);
+    } catch (error) {
+      Logger.error(`Failed to initialize wallet: ${error}`);
       await this.setupWallet();
     }
   }
@@ -440,6 +470,30 @@ program
   .option('-o, --output <file>', 'Save the wallet to a file')
   .action(async (options) => {
     createAndSaveWallet(options.output);
+  });
+
+program
+  .command('init')
+  .description('Initialize wallet from private key (JSON array, base58, or file path)')
+  .argument('<private-key>', 'Private key as JSON array, base58 string, or file path')
+  .option('-s, --save <file>', 'Save the initialized wallet to a file')
+  .action(async (privateKey, options) => {
+    try {
+      const wm = new WalletManager(config.rpcUrl);
+      const keypair = await wm.initializeWallet(privateKey);
+      
+      if (options.save) {
+        wm.saveWalletToFile(keypair, options.save);
+        Logger.success(`Wallet saved to ${options.save}`);
+      }
+      
+      // Display wallet info
+      await wm.displayWalletInfo(keypair);
+      
+    } catch (error) {
+      Logger.error(`Failed to initialize wallet: ${error}`);
+      process.exit(1);
+    }
   });
 
 program
