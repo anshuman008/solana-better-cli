@@ -71,3 +71,9 @@ export interface Portfolio {
   tokens: TokenBalance[];
   lastUpdated: Date;
 }
+
+
+export interface WrapParams {
+  amount: number;
+  unwrap?: boolean;
+}
