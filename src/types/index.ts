@@ -77,3 +77,10 @@ export interface WrapParams {
   amount: number;
   unwrap?: boolean;
 }
+
+
+export interface WalletInfo {
+  publicKey: PublicKey;
+  privateKey: Uint8Array;
+  balance: number;
+}
