@@ -266,10 +266,20 @@ class SolanaWalletManager {
         }
       },
       {
-        type: 'number',
+        type: 'input',
         name: 'amount',
         message: 'Enter amount to transfer (SOL):',
-        validate: (input: number) => input > 0 ? true : 'Amount must be greater than 0'
+        validate: (input: string) => {
+          const amount = parseFloat(input);
+          if (isNaN(amount) || amount <= 0) {
+            return 'Amount must be a valid positive number';
+          }
+          if (amount > 1000) {
+            return 'Amount cannot exceed 1000 SOL';
+          }
+          return true;
+        },
+        filter: (input: string) => parseFloat(input)
       },
       {
         type: 'input',
@@ -302,10 +312,20 @@ class SolanaWalletManager {
         choices: ['Wrap SOL to WSOL', 'Unwrap WSOL to SOL']
       },
       {
-        type: 'number',
+        type: 'input',
         name: 'amount',
         message: 'Enter amount:',
-        validate: (input: number) => input > 0 ? true : 'Amount must be greater than 0'
+        validate: (input: string) => {
+          const amount = parseFloat(input);
+          if (isNaN(amount) || amount <= 0) {
+            return 'Amount must be a valid positive number';
+          }
+          if (amount > 1000) {
+            return 'Amount cannot exceed 1000 SOL';
+          }
+          return true;
+        },
+        filter: (input: string) => parseFloat(input)
       }
     ]);
 
@@ -332,34 +352,67 @@ class SolanaWalletManager {
         type: 'input',
         name: 'fromToken',
         message: 'Enter token to swap FROM (symbol or mint):',
-        default: 'SOL'
+        default: 'SOL',
+        validate: (input: string) => {
+          if (!input || input.trim().length === 0) {
+            return 'Please enter a token symbol or mint address';
+          }
+          return true;
+        }
       },
       {
         type: 'input',
         name: 'toToken',
         message: 'Enter token to swap TO (symbol or mint):',
-        default: 'USDC'
+        default: 'USDC',
+        validate: (input: string) => {
+          if (!input || input.trim().length === 0) {
+            return 'Please enter a token symbol or mint address';
+          }
+          return true;
+        }
       },
       {
-        type: 'number',
+        type: 'input',
         name: 'amount',
         message: 'Enter amount to swap:',
-        validate: (input: number) => input > 0 ? true : 'Amount must be greater than 0'
+        validate: (input: string) => {
+          const amount = parseFloat(input);
+          if (isNaN(amount) || amount <= 0) {
+            return 'Amount must be a valid positive number';
+          }
+          return true;
+        },
+        filter: (input: string) => parseFloat(input)
       }
     ]);
+
+    Logger.info('💡 Tip: Use token symbols like SOL, USDC, USDT instead of long addresses for easier swapping!');
+    Logger.info('Available symbols: SOL, USDC, USDT, RAY, SRM');
 
     try {
       let fromMint = answers.fromToken;
       let toMint = answers.toToken;
 
+      // Try to resolve token symbols to addresses
       if (answers.fromToken.length < 32) {
         const fromToken = await this.jupiterService.findTokenBySymbol(answers.fromToken);
-        fromMint = fromToken?.address || this.config.tokens.WSOL; // Default to SOL
+        if (fromToken) {
+          fromMint = fromToken.address;
+          Logger.info(`Resolved ${answers.fromToken} to ${fromToken.address}`);
+        } else {
+          Logger.warning(`Could not resolve token symbol "${answers.fromToken}", using as-is`);
+        }
       }
 
       if (answers.toToken.length < 32) {
         const toToken = await this.jupiterService.findTokenBySymbol(answers.toToken);
-        toMint = toToken?.address || this.config.tokens.USDC; // Default to USDC
+        if (toToken) {
+          toMint = toToken.address;
+          Logger.info(`Resolved ${answers.toToken} to ${toToken.address}`);
+        } else {
+          Logger.warning(`Could not resolve token symbol "${answers.toToken}", using as-is`);
+        }
       }
 
       Logger.info(`Swapping ${answers.amount} ${answers.fromToken} to ${answers.toToken}`);

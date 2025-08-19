@@ -2,7 +2,9 @@ import axios from 'axios';
 import { 
   Connection, 
   Keypair, 
+  Transaction, 
   VersionedTransaction,
+  sendAndConfirmTransaction
 } from '@solana/web3.js';
 import { SwapParams, SwapQuote, JupiterSwapResponse } from '../types';
 import { config } from '../config';
@@ -22,7 +24,9 @@ export class JupiterService {
     try {
       const { fromTokenMint, toTokenMint, amount, slippageBps = config.slippageBps } = params;
       
-      const inputAmount = Math.floor(amount * 1e6); 
+      // Convert amount to base units (assuming input is in token units)
+      const inputAmount = fromTokenMint === "So11111111111111111111111111111111111111112" ? Math.floor(amount * 1e9) : Math.floor(amount * 1e6); // Assuming 6 decimals for simplicity
+
 
       const response = await axios.get(`${this.apiUrl}/quote`, {
         params: {
@@ -46,6 +50,7 @@ export class JupiterService {
     try {
       Logger.info('Executing swap transaction...');
 
+      // Get swap transaction from Jupiter
       const response = await axios.post(`${this.apiUrl}/swap`, {
         quoteResponse: quote,
         userPublicKey: this.keypair.publicKey.toBase58(),
@@ -56,13 +61,17 @@ export class JupiterService {
 
       const swapData: JupiterSwapResponse = response.data;
       
+      // Deserialize the transaction
       const swapTransactionBuf = Buffer.from(swapData.swapTransaction, 'base64');
       const transaction = VersionedTransaction.deserialize(swapTransactionBuf);
       
+      // Sign the transaction
       transaction.sign([this.keypair]);
 
+      // Send and confirm the transaction
       const signature = await this.connection.sendTransaction(transaction);
       
+      // Wait for confirmation
       const confirmation = await this.connection.confirmTransaction({
         signature,
         blockhash: (await this.connection.getLatestBlockhash()).blockhash,
